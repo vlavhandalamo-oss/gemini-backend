@@ -20,11 +20,13 @@ app.get("/", (req, res) => {
   res.json({ status: "Gemini API backend is running!" });
 });
 
-// List of fallback models in case one fails
+// List of currently available models (as of 2026)
+// Source: https://ai.google.dev/gemini-api/docs/models
 const models = [
-  "gemini-1.5-flash",      // Fast, free-tier friendly (RECOMMENDED)
-  "gemini-1.5-pro",        // More capable but slower
-  "gemini-pro"             // Legacy fallback
+  "gemini-2.5-flash",        // Latest fast model - RECOMMENDED
+  "gemini-2.0-flash",        // Fallback to 2.0 series
+  "gemini-2.0-flash-lite",   // Lightweight option
+  "gemini-1.5-flash"         // Legacy fallback (may not work)
 ];
 
 // Function to try multiple models if one fails
