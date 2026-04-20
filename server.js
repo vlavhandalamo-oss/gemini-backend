@@ -15,10 +15,39 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY 
 });
 
-// Health check endpoint
+// Health check endpoint - tests if server is running
 app.get("/", (req, res) => {
   res.json({ status: "Gemini API backend is running!" });
 });
+
+// List of fallback models in case one fails
+const models = [
+  "gemini-1.5-flash",      // Fast, free-tier friendly (RECOMMENDED)
+  "gemini-1.5-pro",        // More capable but slower
+  "gemini-pro"             // Legacy fallback
+];
+
+// Function to try multiple models if one fails
+async function tryGeminiModels(prompt) {
+  let lastError = null;
+  
+  for (const model of models) {
+    try {
+      console.log(`Trying model: ${model}`);
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: prompt,
+      });
+      console.log(`Success with model: ${model}`);
+      return response;
+    } catch (error) {
+      console.log(`Model ${model} failed: ${error.message}`);
+      lastError = error;
+    }
+  }
+  
+  throw lastError || new Error("All Gemini models failed");
+}
 
 // Main Gemini endpoint - your Carrd site will call this
 app.post("/api/gemini", async (req, res) => {
@@ -29,15 +58,16 @@ app.post("/api/gemini", async (req, res) => {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
-      contents: prompt,
-    });
-
+    console.log(`Received prompt: ${prompt.substring(0, 100)}...`);
+    
+    // Try multiple models automatically
+    const response = await tryGeminiModels(prompt);
+    
     res.json({ 
       success: true, 
       result: response.text 
     });
+    
   } catch (error) {
     console.error("Gemini API error:", error);
     res.status(500).json({ 
@@ -47,7 +77,9 @@ app.post("/api/gemini", async (req, res) => {
   }
 });
 
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Using Gemini with fallback models: ${models.join(", ")}`);
 });
